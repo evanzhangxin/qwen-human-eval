@@ -1,0 +1,22 @@
+# CUDA base image for vLLM & Qwen3
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+
+WORKDIR /app
+
+# Install Python and basic tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev git build-essential\
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Tsinghua PyPI mirror globally for pip
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+RUN pip3 install --no-cache-dir networkx==3.4
+RUN pip3 install --no-cache-dir torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1
+RUN pip3 install --no-cache-dir transformers==4.55.2 accelerate tiktoken einops scipy
+RUN pip3 install --no-cache-dir vllm==0.10.0 
+RUN pip3 install --no-cache-dir "fschat[webui, model_worker]"
+
+EXPOSE 8000
+
+ENTRYPOINT ["vllm", "serve"]

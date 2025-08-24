@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install Python development tools and git
+RUN apt-get update && apt-get install -y --no-install-recommends \ 
+    python3-dev git \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Tsinghua PyPI mirror globally for pip
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+# Install human_eval with specified version
+RUN pip3 install --no-cache-dir human_eval
+
+# Copy the inference script into the image
+COPY scripts/inference.py /app/scripts/
+
+# The evaluate_functional_correctness command requires a sample file as an argument
+# When running the container, provide the sample file path as a command line argument
+# Example usage:
+#   docker run -v $(pwd):/app <image_name> evaluate_functional_correctness /app/samples.jsonl
+#
+# If no argument is provided, this will show the help message
+# CMD ["evaluate_functional_correctness", "--help"]
+CMD ["/bin/bash"]
