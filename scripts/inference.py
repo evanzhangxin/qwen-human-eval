@@ -1,6 +1,7 @@
 import json
 import re
 import requests
+import os
 from tqdm import tqdm
 
 from human_eval.data import write_jsonl, read_problems
@@ -117,21 +118,26 @@ def chat_with_qwen(prompt, enable_thinking=False, temperature=1.0, max_tokens=20
         print(f"Error communicating with Qwen service: {e}")
         return None
 
-def generate_samples(problems, num_samples_per_task, output_file):
+def generate_samples(problems, num_samples_per_task, result_dir, output_file):
     """
     Generates code samples for given problems using Qwen model and saves results to JSONL file.
     
     Args:
         problems (dict): Dictionary of problem objects with task IDs as keys
         num_samples_per_task (int): Number of code samples to generate per problem
-        output_file (str): Path to output JSONL file where samples will be saved
+        result_dir (str): Directory path to store output files
+        output_file (str): Name of output JSONL file
     
     Returns:
-        None: Results are saved directly to output_file
+        None: Results are saved directly to output_file in result_dir
     """
     samples = []
     # Calculate total samples and create progress bar
     total_samples = len(problems) * num_samples_per_task
+    
+    # New: Create full output path
+    output_path = os.path.join(result_dir, output_file)
+    
     with tqdm(total=total_samples, desc="Sample Generation Progress", unit="sample") as pbar:
         for task_id in problems:
             # Extract prompt for current problem
@@ -148,29 +154,33 @@ def generate_samples(problems, num_samples_per_task, output_file):
                 # Update progress bar after each sample
                 pbar.update(1)
     
-    # Write all generated samples to JSONL file
-    write_jsonl(output_file, samples)
+    # Modified: Use combined output path
+    write_jsonl(output_path, samples)
 
 
 def main():
     """Main function to execute sample generation workflow"""
     # Configure generation parameters
-    NUM_SAMPLES_PER_TASK = 10  # Number of samples to generate per problem
-    OUTPUT_FILE = "samples_generated.jsonl"  # Output file path
+    NUM_SAMPLES_PER_TASK = 50  # Number of samples to generate per problem
+    RESULT_DIR = "results"  # New: Result directory
+    OUTPUT_FILE = "samples_generated_50.jsonl"  # Output filename
 
+    # New: Create result directory if it doesn't exist
+    os.makedirs(RESULT_DIR, exist_ok=True)
+    
     # Load problems from HumanEval dataset
     print("Loading problem dataset...")
     problems = read_problems()
     print(f"Loaded {len(problems)} problems successfully")
 
-    # Generate and save samples
-    print(f"Starting sample generation ({{NUM_SAMPLES_PER_TASK}} samples per problem)...")
+    # Modified: Add result_dir parameter
     generate_samples(
         problems=problems,
         num_samples_per_task=NUM_SAMPLES_PER_TASK,
+        result_dir=RESULT_DIR,
         output_file=OUTPUT_FILE
     )
-    print(f"Sample generation complete. Results saved to: {{OUTPUT_FILE}}")
+    print(f"Sample generation complete. Results saved to: {os.path.join(RESULT_DIR, OUTPUT_FILE)}")
 
 
 if __name__ == "__main__":
